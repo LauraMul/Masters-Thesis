@@ -1,0 +1,204 @@
+import numpy as np
+from sklearn import svm
+import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
+import csv
+import matplotlib.mlab as mlab
+import pylab
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import accuracy_score
+from sklearn.metrics import mean_squared_error
+from sklearn.metrics import r2_score
+from sklearn.ensemble import AdaBoostRegressor
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.cross_validation import cross_val_score
+from sklearn.metrics import mean_absolute_error
+import matplotlib.pyplot as plt
+import numpy as np
+import pickle
+from sklearn.svm import SVR
+
+
+
+def openFile(filename):
+    f = open(filename, 'r')
+    reader = csv.reader(f, delimiter=',', quotechar='"',  escapechar="\\")
+    return reader
+
+openFile('allinfo1.csv')
+
+def saveFit(filetosave, fit):
+    file_b = open(filetosave, 'wb')
+    pickle.dump(fit, file_b)
+    file_b.close()
+
+
+def builtFeatureVector(data, features, numberoffeatures):
+    feature_vector = []
+    # you should make different combinations. So for example with last year and with the previous year
+    # these are the possibilities: quarter1, quarter2, quarter3, quarter4, all quarters
+   
+    if 'currentadtot'in features:
+        for i in data:
+            #if i[0][4] == '1':
+       
+            feature_vector.append(i[2])
+            feature_vector.append(i[4])
+            feature_vector.append(i[5])
+            feature_vector.append(i[6])
+            feature_vector.append(i[8])
+            feature_vector.append(i[9])
+            feature_vector.append(i[10])
+            feature_vector.append(i[11])
+            feature_vector.append(i[12])
+    if 'currentadnet'in features:
+        
+        for i in data:
+        
+            #if i[0][4] == '1':
+            gknet = float(i[12]) - float(i[6])
+            wpnet = float(i[11]) - float(i[5])
+            topxnet = float(i[10]) - float(i[4])
+            feature_vector.append(i[2])
+            feature_vector.append(i[8])
+            feature_vector.append(i[9])
+            feature_vector.append(gknet)
+            feature_vector.append(wpnet)
+            feature_vector.append(topxnet)
+    lijst = [feature_vector[i:i+numberoffeatures] for i in xrange(0, len(feature_vector), numberoffeatures)]
+    return lijst
+
+#------------ THIS STAYS THE SAME -----------
+def makeLabels(data):
+    labels = []
+    for i in data: 
+        y = i[3]
+        labels.append(y)
+    return labels
+
+# ------------ THIS STAYS THE SAME IF U APPEND UNADJUSTED VALUE FIRST
+def adjustment(features, labels): 
+    alleenwaar = []
+    featuresanders = []
+    labelsanders = []
+    featureszelfde = []
+    labelszelf = []
+    output = []
+    for i in features[250000:]: 
+        alleenwaar.append(i[0])
+    # ik verwijder hier alle 0 waardes. dat doe ik dus alleen
+    # omde score te berekenen  
+    for x, y in zip(alleenwaar, labels[250000:]):
+        if x != y and x != '0.0':
+            featuresanders.append(x)
+            labelsanders.append(y)
+        if x == y and x != '0.0': 
+            featureszelfde.append(x)
+            
+    alleenwaar1             = [float(k) for k in alleenwaar]
+    featuresanders2         = [float(k) for k in featuresanders]
+    labelsanders2           = [float(k) for k in labelsanders]
+    featureszelfde2         = [float(k) for k in featureszelfde]
+    
+    difference      = np.subtract(featuresanders2, labelsanders2)
+    differenceabs   = abs(difference)
+
+    meandifference      = np.mean(differenceabs)
+    meanrev             = np.mean(featureszelfde2) 
+    
+    output.append((meandifference, meanrev, alleenwaar, featuresanders, featureszelfde ))
+    return output
+    
+
+def get_all_indices(lijst, item):
+    indexje = []
+    #for i in item:
+    #    hey = [index for index in xrange(len(lijst)) if lijst[index] == i]
+    for i in item:
+        indexje.append(lijst.index(i))
+    return indexje
+
+def infoPredictionAndError(labels, predictions):
+    labels1         = [float(k) for k in labels]
+    predictions1    = [float(k) for k in predictions]
+
+    difkwart1       = np.subtract(labels1, predictions1)
+    absdif1         = np.absolute(difkwart1)
+    meanabs1        = np.mean(absdif1)
+    std1            = np.std(absdif1)
+
+    return absdif1
+
+def infoLabels(labels, index):
+    labels2           = [float(k) for k in labels]
+    mean3 = np.mean(labels2)
+    return mean3
+    
+def getMeanErrorGivenIndex (errors, setindex):
+    lijster = [errors[x] for x in setindex]
+    lijstermean = np.mean(lijster)
+    return lijstermean 
+    
+   
+
+#-------------------------------------- CALL FUNCTIONS --------------------------------------------- #
+#-------------------------------------- MAKE FEATURES AND LABELS --------------------------------------------- #
+labels = makeLabels(openFile('allinfo1.csv'))
+file1 = openFile('allinfo1.csv')
+
+# --- let op change hi and the number after that 
+hi = ['currentadtot' ]
+features = builtFeatureVector(openFile('allinfo1.csv'), hi, 9)
+print labels[:100]
+for i in adjustment(features, labels):
+    mean1 =i[0]
+    mean2 = i[1]
+    alleenwaar = i[2]
+    featuresanders = i[3]
+    featureszelfde = i[4] 
+
+#-------------------------------------- SAVE FIT  --------------------------------------------- #
+
+clf1 = RandomForestRegressor(n_estimators=60, random_state = 15325)
+clf1 = RandomForestRegressor(n_estimators=60, random_state = 15325)
+clf2 = SVR(kernel='linear', C=1e3)
+clf = clf2.fit(features[:250000], labels[:250000])
+saveFit('fitted.csv', clf)
+
+#-------------------------------------- OPEN FIT  --------------------------------------------- #
+#file_a = open('fitted.csv', 'rb')
+#fit = pickle.load(file_a)
+#file_a.close()
+
+#-------------------------------------- MAKE PREDICTIONS  --------------------------------------------- #
+#predi = fit.predict(features[250000:])
+
+#-------------------------------------- GET ERRORS FOR PREDICTIONS  --------------------------------------------- #
+#error = infoPredictionAndError(labels[250000:], predi)
+
+#-------------------------------------- GET ERRORS FOR ADJUSTMENTS AND FOR NON ADJUSTED RETURNS  --------------------------------------------- #
+# UNADJUSTED ERRORS
+
+#indie = get_all_indices(alleenwaar, featureszelfde)
+
+#meanerrorunad = getMeanErrorGivenIndex (error, indie)
+#meanunad = infoLabels(labels[250000:], indie)
+#score = np.divide(meanerrorunad, meanunad)
+
+
+# ADJUSTED ERRORS 
+#indie1 =  get_all_indices(alleenwaar, featuresanders)
+
+#meanerrorad = getMeanErrorGivenIndex(error, indie1)
+#score1 = np.divide(meanerrorad, mean1)
+
+#print score
+#print score1
+#clf1 = RandomForestRegressor(n_estimators=60, random_state = 15325)
+#clf1.fit(features[:250000], labels[:250000])
+#importances = clf1.feature_importances_
+#print importances
+
+
+
