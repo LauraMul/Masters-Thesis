@@ -18,66 +18,69 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pickle
 from sklearn.svm import SVR
+from sklearn import linear_model
 
-
-
+# OPWN FILE
 def openFile(filename):
     f = open(filename, 'r')
     reader = csv.reader(f, delimiter=',', quotechar='"',  escapechar="\\")
     return reader
 
-openFile('allinfo1.csv')
-
+# SAVE FIT
 def saveFit(filetosave, fit):
     file_b = open(filetosave, 'wb')
     pickle.dump(fit, file_b)
     file_b.close()
 
-
+# BUILT FEATURE VECTOR
 def builtFeatureVector(data, features, numberoffeatures):
     feature_vector = []
     # you should make different combinations. So for example with last year and with the previous year
     # these are the possibilities: quarter1, quarter2, quarter3, quarter4, all quarters
    
-    if 'currentadtot'in features:
+  
+    if 'quart' in features:
         for i in data:
-            #if i[0][4] == '1':
-       
-            feature_vector.append(i[2])
-            feature_vector.append(i[4])
-            feature_vector.append(i[5])
-            feature_vector.append(i[6])
-            feature_vector.append(i[8])
-            feature_vector.append(i[9])
-            feature_vector.append(i[10])
-            feature_vector.append(i[11])
-            feature_vector.append(i[12])
-    if 'currentadnet'in features:
-        
-        for i in data:
-        
-            #if i[0][4] == '1':
-            gknet = float(i[12]) - float(i[6])
-            wpnet = float(i[11]) - float(i[5])
-            topxnet = float(i[10]) - float(i[4])
-            feature_vector.append(i[2])
-            feature_vector.append(i[8])
-            feature_vector.append(i[9])
-            feature_vector.append(gknet)
-            feature_vector.append(wpnet)
-            feature_vector.append(topxnet)
+            if i[1][4] == '1':
+                feature_vector.append(i[2])
+                #feature_vector.append(i[4])
+                feature_vector.append(i[5])
+                feature_vector.append(i[6])
+                feature_vector.append(i[8])
+                feature_vector.append(i[9])
+                #feature_vector.append(i[10])
+                feature_vector.append(i[11])
+                feature_vector.append(i[12])
+                feature_vector.append(i[3])
+    #PUT ALL LISTS TOGETHER
     lijst = [feature_vector[i:i+numberoffeatures] for i in xrange(0, len(feature_vector), numberoffeatures)]
     return lijst
 
-#------------ THIS STAYS THE SAME -----------
+# MAKE LABELS 
 def makeLabels(data):
     labels = []
     for i in data: 
-        y = i[3]
+        y = i[7]
         labels.append(y)
     return labels
 
-# ------------ THIS STAYS THE SAME IF U APPEND UNADJUSTED VALUE FIRST
+
+hi = ['quart' ]
+features1 = builtFeatureVector(openFile('allinfo1.csv'), hi, 8)
+labels1 = makeLabels(features1)
+features = np.array(features1).astype(np.float)
+labels = np.array(labels1).astype(np.float)
+
+print len(labels)
+print len(features)
+
+#MAKE TRAIN AND TEST SET
+featurestrain = features[:20000]
+featurestest = features[20000:]
+labelstrain = labels[:20000]
+labelstest = labels[20000:]
+
+# FIND OUT WHICH VALUES ARE ADJUSTED
 def adjustment(features, labels): 
     alleenwaar = []
     featuresanders = []
@@ -85,40 +88,73 @@ def adjustment(features, labels):
     featureszelfde = []
     labelszelf = []
     output = []
-    for i in features[250000:]: 
+    #get the original values
+    for i in featurestest: 
         alleenwaar.append(i[0])
-    # ik verwijder hier alle 0 waardes. dat doe ik dus alleen
-    # omde score te berekenen  
-    for x, y in zip(alleenwaar, labels[250000:]):
-        if x != y and x != '0.0':
+    #check if original value is same as the labels (doeldata)
+    for x, y in zip(alleenwaar, labelstest):
+        if x != y :
             featuresanders.append(x)
             labelsanders.append(y)
-        if x == y and x != '0.0': 
+        if x == y : 
             featureszelfde.append(x)
-            
+    # make floats        
     alleenwaar1             = [float(k) for k in alleenwaar]
     featuresanders2         = [float(k) for k in featuresanders]
     labelsanders2           = [float(k) for k in labelsanders]
     featureszelfde2         = [float(k) for k in featureszelfde]
-    
+
+    #get the difference between the labels and the orignal data
     difference      = np.subtract(featuresanders2, labelsanders2)
     differenceabs   = abs(difference)
+   
 
     meandifference      = np.mean(differenceabs)
     meanrev             = np.mean(featureszelfde2) 
     
-    output.append((meandifference, meanrev, alleenwaar, featuresanders, featureszelfde ))
+    output.append((meandifference, meanrev, alleenwaar, featuresanders, featureszelfde, differenceabs, labelsanders))
     return output
+
+for i in adjustment(features, labels):
+    meandifferenceanders =i[0]
+    mean2 = i[1]
+    alleenwaar = i[2]
+    featuresanders = i[3]
+    featureszelfde = i[4]
+    diffab = i[5]
+    labelsanders = i[6]
+
+
+#-------------------------------------- SAVE FIT  --------------------------------------------- #
+
+#clf1 = RandomForestRegressor(n_estimators=60, random_state = 15325)
+#clf1 = RandomForestRegressor(n_estimators=60, random_state = 15325)
+#clf2 werkt niet
+#clf5 = linear_model.LinearRegression()
+#clf2  = linear_model.Ridge (alpha = .5)
+#clf3 = linear_model.BayesianRidge()
+#clf4 = svm.SVR()
+#clf = clf1.fit(featurestrain, labelstrain)
+#saveFit('fitted.csv', clf)
+
     
 
+
+# GET INDICES OF THE ADJUSTED LABELS SO THEY CAN BE FOUND IN THE ERRORS 
 def get_all_indices(lijst, item):
-    indexje = []
+    indexje1 = []
+    ind = []
     #for i in item:
     #    hey = [index for index in xrange(len(lijst)) if lijst[index] == i]
-    for i in item:
-        indexje.append(lijst.index(i))
+    for j in item:
+        indices = [i for i, x in enumerate(lijst) if x == j]
+        ind.append(indices)
+    for i in ind:
+        indexje1.extend(i)
+    indexje = set(indexje1)
     return indexje
 
+# GET ERRORS 
 def infoPredictionAndError(labels, predictions):
     labels1         = [float(k) for k in labels]
     predictions1    = [float(k) for k in predictions]
@@ -130,75 +166,62 @@ def infoPredictionAndError(labels, predictions):
 
     return absdif1
 
+#GET MEAN UNADJUSTED LABEL
 def infoLabels(labels, index):
-    labels2           = [float(k) for k in labels]
+    labels2 = [labels[x] for x in index]
+    #labels2           = [float(k) for k in labels]
     mean3 = np.mean(labels2)
     return mean3
-    
+
+# GET MEAN ERROR GIVEN THE INDEX
 def getMeanErrorGivenIndex (errors, setindex):
     lijster = [errors[x] for x in setindex]
     lijstermean = np.mean(lijster)
-    return lijstermean 
+    return lijstermean
+
+def getErrors (errors, setindex):
+    lijster = [errors[x] for x in setindex]
     
-   
+    return lijster
 
-#-------------------------------------- CALL FUNCTIONS --------------------------------------------- #
-#-------------------------------------- MAKE FEATURES AND LABELS --------------------------------------------- #
-labels = makeLabels(openFile('allinfo1.csv'))
-file1 = openFile('allinfo1.csv')
 
-# --- let op change hi and the number after that 
-hi = ['currentadtot' ]
-features = builtFeatureVector(openFile('allinfo1.csv'), hi, 9)
-print labels[:100]
-for i in adjustment(features, labels):
-    mean1 =i[0]
-    mean2 = i[1]
-    alleenwaar = i[2]
-    featuresanders = i[3]
-    featureszelfde = i[4] 
-
-#-------------------------------------- SAVE FIT  --------------------------------------------- #
-
-clf1 = RandomForestRegressor(n_estimators=60, random_state = 15325)
-clf1 = RandomForestRegressor(n_estimators=60, random_state = 15325)
-clf2 = SVR(kernel='linear', C=1e3)
-clf = clf2.fit(features[:250000], labels[:250000])
-saveFit('fitted.csv', clf)
-
-#-------------------------------------- OPEN FIT  --------------------------------------------- #
-#file_a = open('fitted.csv', 'rb')
-#fit = pickle.load(file_a)
-#file_a.close()
+file_a = open('fitted.csv', 'rb')
+fit = pickle.load(file_a)
+file_a.close()
 
 #-------------------------------------- MAKE PREDICTIONS  --------------------------------------------- #
-#predi = fit.predict(features[250000:])
+predi = fit.predict(featurestest)
+print predi[:15]
+print labels[75000:75015]
 
 #-------------------------------------- GET ERRORS FOR PREDICTIONS  --------------------------------------------- #
-#error = infoPredictionAndError(labels[250000:], predi)
+error = infoPredictionAndError(labelstest, predi)
+print error[:15]
 
 #-------------------------------------- GET ERRORS FOR ADJUSTMENTS AND FOR NON ADJUSTED RETURNS  --------------------------------------------- #
+# ADJUSTED ERRORS 
+indie1 =  get_all_indices(alleenwaar, featuresanders)
+meanerrorad = getMeanErrorGivenIndex(error, indie1)
+score1 = np.divide(meanerrorad, meandifferenceanders)
+print score1
+
+
 # UNADJUSTED ERRORS
 
-#indie = get_all_indices(alleenwaar, featureszelfde)
+indie = get_all_indices(alleenwaar, featureszelfde)
+meanerrorunad = getMeanErrorGivenIndex (error, indie)
+score = np.divide(meanerrorunad, mean2)
+print score
 
-#meanerrorunad = getMeanErrorGivenIndex (error, indie)
-#meanunad = infoLabels(labels[250000:], indie)
-#score = np.divide(meanerrorunad, meanunad)
 
 
-# ADJUSTED ERRORS 
-#indie1 =  get_all_indices(alleenwaar, featuresanders)
 
-#meanerrorad = getMeanErrorGivenIndex(error, indie1)
-#score1 = np.divide(meanerrorad, mean1)
 
-#print score
-#print score1
-#clf1 = RandomForestRegressor(n_estimators=60, random_state = 15325)
-#clf1.fit(features[:250000], labels[:250000])
-#importances = clf1.feature_importances_
-#print importances
+
+
+
+
+
 
 
 
