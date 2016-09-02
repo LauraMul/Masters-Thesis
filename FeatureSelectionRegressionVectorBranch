@@ -245,6 +245,72 @@ print importances
 
  
 
+# GET ERRORS 
+def infoPredictionAndError(labels, predictions):
+    labels1         = [float(k) for k in labels]
+    predictions1    = [float(k) for k in predictions]
+
+    difkwart1       = np.subtract(labels1, predictions1)
+    absdif1         = np.absolute(difkwart1)
+    meanabs1        = np.mean(absdif1)
+    std1            = np.std(absdif1)
+
+    return absdif1
+
+#GET MEAN UNADJUSTED LABEL
+def infoLabels(labels, index):
+    labels2 = [labels[x] for x in index]
+    #labels2           = [float(k) for k in labels]
+    mean3 = np.mean(labels2)
+    return mean3
+
+# GET MEAN ERROR GIVEN THE INDEX
+def getMeanErrorGivenIndex (errors, setindex):
+    lijster = [errors[x] for x in setindex]
+    lijstermean = np.mean(lijster)
+    return lijstermean
+
+def getErrors (errors, setindex):
+    lijster = [errors[x] for x in setindex]
+    
+    return lijster
+
+
+file_a = open('fitted.csv', 'rb')
+fit = pickle.load(file_a)
+file_a.close()
+
+#-------------------------------------- MAKE PREDICTIONS  --------------------------------------------- #
+predi = fit.predict(featurestest)
+print predi[:30]
+print labels[50000:50030]
+
+#-------------------------------------- GET ERRORS FOR PREDICTIONS  --------------------------------------------- #
+error = infoPredictionAndError(labelstest, predi)
+print error[:100]
+
+#-------------------------------------- GET ERRORS FOR ADJUSTMENTS AND FOR NON ADJUSTED RETURNS  --------------------------------------------- #
+
+# UNADJUSTED ERRORS
+#indie = get_all_indices(alleenwaar, featureszelfde)
+meanerrorunad = getMeanErrorGivenIndex (error, zeroes)
+score = np.divide(meanerrorunad, mean2)
+print score
+
+# ADJUSTED ERRORS 
+#indie1 =  get_all_indices(alleenwaar, featuresanders)
+meanerrorad = getMeanErrorGivenIndex(error, nonzeroes)
+score1 = np.divide(meanerrorad, meandifferenceanders)
+print score1
+
+
+
+
+
+
+
+
+
 
 
 
