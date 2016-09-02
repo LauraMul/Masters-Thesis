@@ -1,0 +1,315 @@
+
+
+import numpy as np
+from sklearn import svm
+import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
+import csv
+import matplotlib.mlab as mlab
+import pylab
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import accuracy_score
+from sklearn.metrics import mean_squared_error
+from sklearn.metrics import r2_score
+from sklearn.ensemble import AdaBoostRegressor
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.cross_validation import cross_val_score
+from sklearn.metrics import mean_absolute_error
+import matplotlib.pyplot as plt
+import numpy as np
+import pickle
+from sklearn.svm import SVR
+from sklearn import linear_model
+from sklearn.linear_model import SGDClassifier
+from sklearn.metrics import accuracy_score
+from sklearn import neighbors, datasets
+from sklearn import preprocessing
+from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.ensemble import RandomForestClassifier
+
+# OPWN FILE
+def openFile(filename):
+    f = open(filename, 'r')
+    reader = csv.reader(f, delimiter=',', quotechar='"',  escapechar="\\")
+    return reader
+
+
+def dictioTotal(data):
+    
+    dictio = {}
+
+    for i in data:
+        adjlast = float(i[2])
+        if i[19] in dictio:
+            dictio[i[19]].append(adjlast)
+        else:
+            dictio[i[19]] = [adjlast]
+
+    kernceltotals =  {k:sum(map(int, v)) for k, v in dictio.items()}
+    return kernceltotals
+
+
+# SAVE FIT
+def saveFit(filetosave, fit):
+    file_b = open(filetosave, 'wb')
+    pickle.dump(fit, file_b)
+    file_b.close()
+
+# BUILT FEATURE VECTOR
+def builtFeatureVector(data, features, numberoffeatures, tot, nummerkern, vectorkern):
+    feature_vector = []
+    # you should make different combinations. So for example with last year and with the previous year
+    # these are the possibilities: quarter1, quarter2, quarter3, quarter4, all quarters
+   
+    totaal = 0
+    if 'quart' in features:
+        for i in data:
+        #if i[1][4] == '1':
+            unadj3 = float(i[2])
+         
+            #feature_vector.append(unadj3)
+        #feature_vector.append(i[4])
+            
+            topx = float(i[4])
+            topx1 = float(i[10])
+            topxdiff = np.subtract(topx, topx1)
+            wp = float (i[5])
+            wp1 = float(i[11])
+            wpdiff = np.subtract(wp, wp1)
+            gk = float(i[6])
+            gk1 = float(i[12])
+            gkdiff = np.subtract(gk, gk1)
+            lastun = float(i[8])
+            lastad = float(i[9])
+            #feature_vector.append(lastun)
+            #feature_vector.append(lastad)
+            versch = np.subtract(unadj3, lastad)
+            feature_vector.append(versch)
+            lastlastun = float(i[14])
+            lastlastad = float(i[15])
+            #feature_vector.append(lastlastun)
+            #feature_vector.append(lastlastad)
+            versch1 = np.subtract(lastad, lastlastad)
+            feature_vector.append(versch1)
+            #feature_vector.append(i[6])
+            #feature_vector.append(i[12])
+            #feature_vector.append(i[10])
+            #feature_vector.append(i[7])
+            #feature_vector.append(i[13])
+            #feature_vector.append(i[5])
+            feature_vector.append(topx)
+            #feature_vector.append(topx1)
+            feature_vector.append(wp)
+            #feature_vector.append(wp1)
+            feature_vector.append(gk)
+            #feature_vector.append(gk1)
+        #feature_vector.append(i[11])
+            totaal = tot[i[19]]
+        #print totaal
+            rel = np.divide(unadj3, totaal)
+            feature_vector.append(rel)
+            kerncelnummer = nummerkern[i[19]]
+            nummer = nummerkern[i[19]]
+            vector = vectorkern[nummer]
+            vector1 = np.array(vector[1:]).tolist()
+            
+            feature_vector.extend(vector1)
+            feature_vector.append(i[20])
+    #PUT ALL LISTS TOGETHER
+    lijst = [feature_vector[i:i+numberoffeatures] for i in xrange(0, len(feature_vector), numberoffeatures)]
+    return lijst
+
+# MAKE LABELS 
+def makeLabels(data):
+    labels = []
+    for i in data: 
+        y = i[22]
+        labels.append(y)
+    return labels
+
+
+
+totaal1 = 0
+bestand = (openFile('classificationoudnodupmix.csv'))
+# hier zoek je dus die kerncel in op 
+dicttot = dictioTotal(openFile('classificationoudnodupmix.csv'))
+hoi = []
+dicy = {}
+for keys, value in dicttot.iteritems():
+    hoi.append(keys)
+ey =  hoi
+# get numbers for each kerncel 
+for i,j in zip(hoi,range(len(ey))) :
+    dicy[i] = j
+dictkerncel = dicy
+# put numbers and kerncellen in  dictionary and make a list of this
+dictforvec = {}
+lijst = []
+for key, value in dicy.iteritems():
+    dictforvec['nummer'] = key
+    dictforvec['kern'] = value
+    lijst.append(dictforvec)
+    dictforvec = {} 
+print len(lijst)
+from sklearn.feature_extraction import DictVectorizer
+v = DictVectorizer(sparse=False)
+
+vectorskern = v.fit_transform(lijst)
+
+hi = ['quart' ]
+features1 = []
+oi = builtFeatureVector(openFile('classificationoudnodupmix.csv'), hi, 23, dicttot, dictkerncel, vectorskern)
+#was 42
+finalfeat = []
+
+
+for i in oi:
+    features1.append(i)
+for i in features1:
+    finalfeat.append(i[0:22])
+
+print finalfeat[:10]
+labels1 = makeLabels(features1)
+#features = np.array(finalfeat).astype(np.float)
+labels = np.array(labels1).astype(np.float)
+
+print 'len labels', len(labels1)
+print 'len feat', len(finalfeat)
+#print finalfeat[:200]
+print labels[:10]
+
+
+
+#MAKE TRAIN AND TEST SET
+featurestrain = finalfeat[:870628]
+
+featurestest = finalfeat[870628:]
+labelstrain = labels[:870628]
+labelstest = labels[870628:]
+
+positief = 0
+for i in labelstrain:
+    if i == 1:
+        positief = positief +1
+print 'positief in train', positief
+
+positief1 = 0
+for i in labelstest:
+    if i == 1:
+        positief1 = positief1 +1
+print 'positief in test ', positief1
+
+
+clf6 = svm.SVC()
+n_neighbors = 15
+clf8 = neighbors.KNeighborsClassifier(n_neighbors, weights='uniform')
+clf9 = GradientBoostingClassifier(n_estimators=100, learning_rate=1.0,
+   max_depth=1, random_state=0)
+clf7 = SGDClassifier(loss="modified_huber", penalty="l2")
+#clf1 = RandomForestRegressor(n_estimators=60, random_state = 15325)
+#clf1 = RandomForestRegressor(n_estimators=60, random_state = 15325)
+#clf2 werkt niet
+#clf5 = linear_model.LinearRegression()
+#clf2  = linear_model.Ridge (alpha = .5)
+#clf3 = linear_model.BayesianRidge()
+clf4 = svm.SVR()
+clf10 = RandomForestClassifier(n_estimators=60, random_state = 15325)
+gewicht = []
+for i in labelstrain:
+    if i == 1:
+        gewicht.append(72)
+    else:
+        gewicht.append(6)
+
+print len(labelstrain)
+print len(gewicht)
+
+#clf = clf9.fit(featurestrain, labelstrain, sample_weight = gewicht)
+#clf = clf9.fit(featurestrain, labelstrain)
+#saveFit('fittedclassrfweight.csv', clf)
+
+
+
+
+file_a = open('fittedclassrfweight.csv', 'rb')
+fit = pickle.load(file_a)
+file_a.close()
+
+
+
+#-------------------------------------- MAKE PREDICTIONS  --------------------------------------------- #
+predi = fit.predict(featurestest)
+print predi[:10]
+print labelstest[:10]
+falseneg = 0
+truepos = 0
+trueneg = 0
+falsepos = 0
+#predi zegt dat het 1 is
+indices = [i for i, x in enumerate(predi) if x == 1]
+indices2 = [i for i, x in enumerate(predi) if x == 0]
+print len(indices)
+print len(indices2)
+labels2 = [labelstest[x] for x in indices]
+labels3 = [labelstest[x] for x in indices2]
+for i in labels2:
+    if i == 0:
+        falsepos = falsepos +1
+    else:
+        truepos = truepos + 1
+for i in labels3:
+    if i == 0:
+        trueneg = trueneg +1
+    else:
+        falseneg = falseneg + 1
+print 'falseneg', falseneg
+print 'truepos', truepos
+print 'trueneg', trueneg
+print 'falsepos', falsepos
+hoi = accuracy_score(labelstest, predi)
+print hoi
+
+
+
+
+
+
+
+ 
+      
+
+      
+
+      
+
+
+
+
+
+
+
+   
+  
+
+
+      
+
+      
+
+
+      
+
+
+
+
+ 
+   
+  
+      
+
+      
+
+      
+  
+
