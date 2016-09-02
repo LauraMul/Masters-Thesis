@@ -1,0 +1,253 @@
+import numpy as np
+from sklearn import svm
+import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
+import csv
+import matplotlib.mlab as mlab
+import pylab
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import accuracy_score
+from sklearn.metrics import mean_squared_error
+from sklearn.metrics import r2_score
+from sklearn.ensemble import AdaBoostRegressor
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.cross_validation import cross_val_score
+from sklearn.metrics import mean_absolute_error
+import matplotlib.pyplot as plt
+import numpy as np
+import pickle
+from sklearn.svm import SVR
+from sklearn import linear_model
+
+# OPWN FILE
+def openFile(filename):
+    f = open(filename, 'r')
+    reader = csv.reader(f, delimiter=',', quotechar='"',  escapechar="\\")
+    return reader
+
+# SAVE FIT
+def saveFit(filetosave, fit):
+    file_b = open(filetosave, 'wb')
+    pickle.dump(fit, file_b)
+    file_b.close()
+
+def dictioTotal(data):
+    
+    dictio = {}
+
+    for i in data:
+        adjlast = float(i[2])
+        if i[19] in dictio:
+            dictio[i[19]].append(adjlast)
+        else:
+            dictio[i[19]] = [adjlast]
+
+    kernceltotals =  {k:sum(map(int, v)) for k, v in dictio.items()}
+    return kernceltotals
+
+# BUILT FEATURE VECTOR
+def builtFeatureVector(data, features, numberoffeatures, tot, nummerkern, vectorkern):
+    feature_vector = []
+    # you should make different combinations. So for example with last year and with the previous year
+    # these are the possibilities: quarter1, quarter2, quarter3, quarter4, all quarters
+   
+  
+    if 'quart' in features:
+        for i in data:
+            #if i[1][4] == '1':
+            unadj3 = float(i[2])
+            feature_vector.append(unadj3)
+            #feature_vector.append(i[4])
+            
+            topx = float(i[4])
+            topx1 = float(i[10])
+            topx2 = float(i[16])
+            topxdiff = np.subtract(topx, topx1)
+            wp = float (i[5])
+            wp1 = float(i[11])
+            wp2 = float (i[17])
+            wpdiff = np.subtract(wp, wp1)
+            gk = float(i[6])
+            gk1 = float(i[12])
+            gk2 = float(i[18])
+            gkdiff = np.subtract(gk, gk1)
+            lastun = float(i[8])
+            lastad = float(i[9])
+            feature_vector.append(lastun)
+            feature_vector.append(lastad)
+            lastlastun = float(i[14])
+            lastlastad = float(i[15])
+            feature_vector.append(lastlastun)
+            feature_vector.append(lastlastad)
+            #feature_vector.append(i[6])
+            #feature_vector.append(i[12])
+            #feature_vector.append(i[10])
+            #feature_vector.append(i[7])
+            #feature_vector.append(i[13])
+            #feature_vector.append(i[5])
+            feature_vector.append(topx)
+            feature_vector.append(topx1)
+            #feature_vector.append(topx2)
+            feature_vector.append(wp)
+            feature_vector.append(wp1)
+            feature_vector.append(wp2)
+            #feature_vector.append(gk)
+            #feature_vector.append(gk1)
+            #feature_vector.append(gk2)
+            #feature_vector.append(i[11])
+            totaal = tot[i[19]]
+            #print totaal
+            rel = np.divide(unadj3, totaal)
+            #feature_vector.append(rel)
+            kerncelnummer = nummerkern[i[19]]
+            nummer = nummerkern[i[19]]
+            vector = vectorkern[nummer]
+            vector1 = np.array(vector[1:]).tolist()
+            
+            feature_vector.extend(vector1)
+            feature_vector.append(i[3])
+    #PUT ALL LISTS TOGETHER
+    lijst = [feature_vector[i:i+numberoffeatures] for i in xrange(0, len(feature_vector), numberoffeatures)]
+    return lijst
+
+# MAKE LABELS 
+def makeLabels(data):
+    labels = []
+    for i in data: 
+        y = i[26]
+        labels.append(y)
+    return labels
+
+
+totaal1 = 0
+bestand = (openFile('oudnodupmix.csv'))
+# hier zoek je dus die kerncel in op 
+dicttot = dictioTotal(openFile('oudnodupmix.csv'))
+hoi = []
+dicy = {}
+for keys, value in dicttot.iteritems():
+    hoi.append(keys)
+ey =  hoi
+# get numbers for each kerncel 
+for i,j in zip(hoi,range(len(ey))) :
+    dicy[i] = j
+dictkerncel = dicy
+# put numbers and kerncellen in  dictionary and make a list of this
+dictforvec = {}
+lijst = []
+for key, value in dicy.iteritems():
+    dictforvec['nummer'] = key
+    dictforvec['kern'] = value
+    lijst.append(dictforvec)
+    dictforvec = {} 
+print len(lijst)
+from sklearn.feature_extraction import DictVectorizer
+v = DictVectorizer(sparse=False)
+
+vectorskern = v.fit_transform(lijst)
+
+hi = ['quart' ]
+features1 = []
+oi = openFile('oudnodupmix.csv')
+
+oi1 = builtFeatureVector(oi, hi, 27, dicttot, dictkerncel, vectorskern)
+finalfeat = []
+for i in oi1:
+    features1.append(i)
+for i in features1:
+    finalfeat.append(i[0:26])
+
+labels1 = makeLabels(features1)
+features = np.array(finalfeat).astype(np.float)
+labels = np.array(labels1).astype(np.float)
+
+print len(labels)
+print len(features)
+print finalfeat[:200]
+print labels[:200]
+#MAKE TRAIN AND TEST SET
+featurestrain = features[:870628]
+featurestest = features[870628:]
+labelstrain = labels[:870628]
+labelstest = labels[870628:]
+
+# FIND OUT WHICH VALUES ARE ADJUSTED
+def adjustment(features, labels): 
+    alleenwaar = []
+    featuresanders = []
+    labelsanders = []
+    featureszelfde = []
+    labelszelf = []
+    output = []
+    featuresub = []
+    #get the original values
+    for i in featurestest: 
+        alleenwaar.append(i[0])
+    #check if original value is same as the labels (doeldata)
+    for x, y in zip(alleenwaar, labelstest):
+        hoi = np.subtract(x,y)
+        featuresub.append(hoi)
+        if x != y :
+            featuresanders.append(x)
+            labelsanders.append(y)
+        if x == y : 
+            featureszelfde.append(x)
+
+    featuresub1 = np.asarray(featuresub)
+    
+    zeroes = np.where(featuresub1 == 0)[0]
+    zeroes1 = list(zeroes)
+    nonzeroes = np.nonzero(featuresub1)
+    # make floats        
+    alleenwaar1             = [float(k) for k in alleenwaar]
+    featuresanders2         = [float(k) for k in featuresanders]
+    labelsanders2           = [float(k) for k in labelsanders]
+    featureszelfde2         = [float(k) for k in featureszelfde]
+
+    #get the difference between the labels and the orignal data
+    difference      = np.subtract(featuresanders2, labelsanders2)
+    differenceabs   = abs(difference)
+   
+
+    meandifference      = np.mean(differenceabs)
+    meanrev             = np.mean(featureszelfde2) 
+    
+    output.append((meandifference, meanrev, alleenwaar, featuresanders, featureszelfde, differenceabs, labelsanders,  zeroes1, nonzeroes))
+    return output
+
+for i in adjustment(features, labels):
+    meandifferenceanders =i[0]
+    mean2 = i[1]
+    alleenwaar = i[2]
+    featuresanders = i[3]
+    featureszelfde = i[4]
+    diffab = i[5]
+    labelsanders = i[6]
+    zeroes = i[7]
+    nonzeroes = i[8]
+
+
+#-------------------------------------- SAVE FIT  --------------------------------------------- #
+
+clf1 = RandomForestRegressor(n_estimators=60, random_state = 15325)
+#clf1 = RandomForestRegressor(n_estimators=60, random_state = 15325)
+#clf2 werkt niet
+clf5 = linear_model.LinearRegression()
+#clf2  = linear_model.Ridge (alpha = .5)
+#clf3 = linear_model.BayesianRidge()
+#clf4 = svm.SVR()
+clf = clf1.fit(featurestrain, labelstrain)
+saveFit('fitted.csv', clf)
+importances = clf.feature_importances_
+print importances
+
+
+ 
+
+
+
+
+
+
+
