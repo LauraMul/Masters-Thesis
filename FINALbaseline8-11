@@ -1,0 +1,199 @@
+import csv
+import numpy as np
+import pickle
+from operator import itemgetter
+import operator
+def openFile(filename):
+    f = open(filename, 'r')
+    reader = csv.reader(f, delimiter=',', quotechar='"',  escapechar="\\")
+    return reader
+
+
+def dictioTotal(data, unadjusted, brancheorkern):
+    dictio = {}
+    for i in data:
+        adjlast = float(i[unadjusted])
+        if i[brancheorkern] in dictio:
+            dictio[i[brancheorkern]].append(adjlast)
+        else:
+            dictio[i[brancheorkern]] = [adjlast]
+    kernceltotals =  {k:sum(map(int, v)) for k, v in dictio.items()}
+    return kernceltotals
+
+def saveFit(filetosave, fit):
+    file_b = open(filetosave, 'wb')
+    pickle.dump(fit, file_b)
+    file_b.close()
+    
+yeshello = openFile('outmixnodup.csv')
+#hello = dictioTotal(yeshello, 3, 0)
+#saveFit('first.csv', hello)
+file_a = open('first.csv', 'rb')
+totalen = pickle.load(file_a)
+file_a.close()
+
+
+
+def ditjaar(read, kernceltot):
+ 
+    groeivoetbe = []
+    for i in read:
+        kerncel = i[0]
+        groeivoetbe.append(kerncel)
+        ditjaaromzet = float(i[3])
+        vorigjaar = float(i[10])
+        groundtruth = float(i[4])
+        groeivoetbe.append(ditjaaromzet)
+        groeivoetbe.append(groundtruth)
+        groeivoetbe.append(vorigjaar)
+        deelvanomzetkern = np.divide(ditjaaromzet,vorigjaar)
+        groeivoetbe.append(deelvanomzetkern) 
+        groeivoetbe.append(i[6])
+        groeivoetbe.append(i[12])
+        groeivoetbe.append(i[7])
+        groeivoetbe.append(i[13])
+    lijst = [groeivoetbe[i:i+9] for i in xrange(0, len(groeivoetbe),9)]
+   
+    return lijst
+
+hoi = ditjaar(yeshello, totalen)
+
+hoi1 = sorted(hoi, key=itemgetter(4))
+ondera = []
+lab =[]
+
+for i in hoi1[:584373]:
+   
+    errordiff = i[2] - i[1]
+    errordiff1 = abs(errordiff)
+    ondera.append(errordiff1)
+  
+    label3 = abs(i[2])
+    lab.append(label3)
+
+meanonder = np.mean(ondera)
+print 'meanerroradjond', meanonder
+menalab = np.mean(lab)
+print 'meanlabel',menalab
+yeshello = np.divide(meanonder,menalab) 
+#print 'erorreate', yeshello        
+
+suspic = []
+suspic1 = []
+nonsuspic = []
+suspic2 = []
+nonsuspic1 = []
+gelijk = []
+for i in hoi1:
+    if i[1] > (i[3] *4) and i[7] < i[8] :
+        suspic.append(i)
+    if i[1] < (i[3] *4) and i[7] > i[8] :
+        suspic1.append(i)
+    else:
+        nonsuspic.append(i)
+      
+lengte = len(suspic)
+hoi = []
+for i in suspic:
+    hoi.append(i)
+for i in suspic1:
+    suspic2.append(i)
+for i in nonsuspic:
+    nonsuspic1.append(i)
+tehoog = []
+for i in hoi:
+    div = 100
+    fl = float(i[3])
+    add = np.divide(fl,div)
+    add1 = add * 25
+    fl1 = float(i[1])
+    i[5] = fl1 + add
+    tehoog.append(i)
+print len(tehoog)
+telaag = []
+for i in suspic2:
+    div = 100
+    fl = float(i[3])
+    add = np.divide(fl,div)
+    add1 = add * 25
+    fl1 = float(i[1])
+    i[5] = fl1 - add1
+    telaag.append(i)
+for i in nonsuspic:
+
+    gelijk.append(i)
+
+samengevoegd = tehoog + telaag + gelijk
+
+ground = []
+pred = []
+error1 = []
+meanlabel = []
+label = []
+errorun= []
+verschil2 = []
+errorad = []
+labelad = []
+alles = []
+for i in samengevoegd:
+    ground = float(i[2])
+    #print ground
+    pred = float(i[5])
+    unadj = float (i[1])
+    error = np.subtract(ground, pred)
+    
+    error2 = error1.append(error)
+    # dus als het niet is aangepast
+    if unadj == ground:
+        absground = abs(ground)
+        label.append(absground)
+      
+        error = np.subtract(ground, pred)
+        errie = abs(error)
+        errorun.append(errie)
+        #meanunad  = np.mean(meanlabel)
+    #als het is aangepast 
+    else:
+    
+        alles.append(i)
+        verschil = np.subtract(ground, unadj)
+        verschil1 = abs(verschil)
+        verschil2.append(verschil1)
+        error = np.subtract(ground, pred)
+        err = abs(error)
+        errorad.append(err)
+        ground1 = abs(ground)
+        labelad.append(ground1)
+print 'samengevoegd', len(samengevoegd)
+
+
+lab1 = []
+ondera1 = []
+
+# boven 2000 adjusted 
+meanerrorad = np.mean(errorad)
+print 'boven200meanerror', meanerrorad
+meanadjust = np.mean(verschil2)
+print 'boven2000meanadj', meanadjust
+erroradjust = np.divide(meanerrorad, meanadjust)
+print 'punt2erroroveradj',erroradjust
+
+# boven 2000 adjust labeld
+meanlabeladj = np.mean(labelad)
+print 'boven2000meanlableadj', meanlabeladj
+erroradjustoverall =  np.divide(meanerrorad, meanlabeladj)
+print 'erroroverrev', erroradjustoverall
+
+
+#boven 2000 unadjusted
+meanunad = np.mean(label)
+print 'boven2000unadjlabel', meanunad
+meanerun = np.mean(errorun)
+print 'boven2000errorunadj', meanerun
+errorunadjust = np.divide(meanerun, meanunad)
+print 'erroroverrevunad',errorunadjust
+
+   
+
+
+
