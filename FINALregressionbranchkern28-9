@@ -47,7 +47,7 @@ def dictioTotal(data, unadjusted, brancheorkern):
     kernceltotals =  {k:sum(map(int, v)) for k, v in dictio.items()}
     return kernceltotals
 
-# MAKE DICT MET TOTALEN
+# MAKE DICT WITH TOTALS
 def makeDictVect(dictmettot):
     hoi = []
     dicy = {}
@@ -362,7 +362,7 @@ for i in output:
     nonzeroes = i[8]
 
 
- 
+# OPEN SAVED FIT (THIS IS A SECOND RUN)
 
 file_a = open('ey.csv', 'rb')
 fit = pickle.load(file_a)
