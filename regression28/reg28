@@ -21,9 +21,7 @@ from sklearn.svm import SVR
 from sklearn import linear_model
 from sklearn.feature_extraction import DictVectorizer
 
-
-
-# OPWN FILE
+# OPEN FILE
 def openFile(filename):
     f = open(filename, 'r')
     reader = csv.reader(f, delimiter=',', quotechar='"',  escapechar="\\")
@@ -36,18 +34,16 @@ def saveFit(filetosave, fit):
     file_b.close()
 
 def dictioTotal(data, unadjusted, brancheorkern):
-    
     dictio = {}
-
     for i in data:
         adjlast = float(i[unadjusted])
         if i[brancheorkern] in dictio:
             dictio[i[brancheorkern]].append(adjlast)
         else:
             dictio[i[brancheorkern]] = [adjlast]
-
     kernceltotals =  {k:sum(map(int, v)) for k, v in dictio.items()}
     return kernceltotals
+
 
 def makeDictVect(dictmettot):
     hoi = []
@@ -67,10 +63,7 @@ def makeDictVect(dictmettot):
         dictforvec['kern'] = value
         lijst.append(dictforvec)
         dictforvec = {} 
-    
-
     v = DictVectorizer(sparse=False)
-
     vectorskern = v.fit_transform(lijst)
     return vectorskern
 
@@ -80,7 +73,7 @@ def dictCijferAssign(dictmettot):
     for keys, value in dictmettot.iteritems():
         hoi.append(keys)
     ey =  hoi
-    # get numbers for each kerncel rn
+    # get numbers for each kerncel 
     for i,j in zip(hoi,range(len(ey))) :
         dicy[i] = j
     dictkerncel = dicy
@@ -91,17 +84,13 @@ def builtFeatureVector(data, features, numberoffeatures, totkern, nummkern, vect
     feature_vector = []
     # you should make different combinations. So for example with last year and with the previous year
     # these are the possibilities: quarter1, quarter2, quarter3, quarter4, all quarters
-   
-  
     if 'quart' in features:
         for i in data:
             #if i[1][4] == '1':
             unadj3 = float(i[3])
             feature_vector.append(unadj3)
             #feature_vector.append(i[4])
-            
             topx = float(i[5])
-            
             topx1 = float(i[11])
             topx2 = float(i[17])
             topxdiff = np.subtract(topx, topx1)
@@ -137,10 +126,11 @@ def builtFeatureVector(data, features, numberoffeatures, totkern, nummkern, vect
             feature_vector.append(gk1)
             feature_vector.append(gk2)
             #feature_vector.append(i[11])
-            #------ hier gaat het over kern ------ #
+            #------ this is about categories (kerncel) ------ #
             
             totaalke = totkern[i[0]]
             #print totaal
+            # divide returns by the total returns of category
             relke = np.divide(unadj3, totaalke)
             feature_vector.append(relke)
             #kerncelnummer = nummerkern[i[19]]
@@ -149,7 +139,7 @@ def builtFeatureVector(data, features, numberoffeatures, totkern, nummkern, vect
             vectorke = vectorkernover[nummerke]
             vectorke1 = np.array(vectorke[1:]).tolist()
             feature_vector.extend(vectorke1)
-            # --- hier gaat het over branche --- #
+            # --- this is about the branche --- #
             totaalbr = totbranch[i[20]]
             relbr = np.divide(unadj3, totaalbr)
             feature_vector.append(relbr)
@@ -228,23 +218,12 @@ def adjustment(feat, lab):
 # GET ERRORS
 
 def infoPredictionAndError(labels, predictions):
-
     labels1         = [float(k) for k in labels]
-
     predictions1    = [float(k) for k in predictions]
-
- 
-
     difkwart1       = np.subtract(labels1, predictions1)
-
     absdif1         = np.absolute(difkwart1)
-
     meanabs1        = np.mean(absdif1)
-
     std1            = np.std(absdif1)
-
- 
-
     return absdif1
 
  
@@ -252,13 +231,9 @@ def infoPredictionAndError(labels, predictions):
 #GET MEAN UNADJUSTED LABEL
 
 def infoLabels(labels, index):
-
     labels2 = [labels[x] for x in index]
-
     #labels2           = [float(k) for k in labels]
-
     mean3 = np.mean(labels2)
-
     return mean3
 
  
@@ -266,23 +241,15 @@ def infoLabels(labels, index):
 # GET MEAN ERROR GIVEN THE INDEX
 
 def getMeanErrorGivenIndex (errors, setindex):
-
     lijster = [errors[x] for x in setindex]
-
     lijster1 = np.absolute(lijster)
-
     lijstermean = np.mean(lijster1)
-
     return lijstermean
 
  
 
 def getErrors (errors, setindex):
-
-    lijster = [errors[x] for x in setindex]
-
-   
-
+    lijster = [errors[x] for x in setindex]  
     return lijster
 
 
@@ -290,15 +257,15 @@ def getErrors (errors, setindex):
 
 totaal1 = 0
 bestand = (openFile('outmixnodup.csv'))
-# hier zoek je dus die kerncel in op 
+# look for the category (kerncel)
 dicttot = dictioTotal(openFile('outmixnodup.csv'), 3, 0)
-#die hieronder is voor de branche
+# look for the branche
 dicttotbr = dictioTotal(openFile('outmixnodup.csv'), 3, 20)
 print dicttotbr
 
-# pak de cijfers die bij elke kerncel hoeren
+# take the figures that belong to each category
 dictkernass = dictCijferAssign(dicttot)
-# pak de cijfers die bij elkar branche horen
+# take the figures that belong to each category
 dictbrancheass = dictCijferAssign(dicttotbr)
 print dictbrancheass
 #make dictvect voor kerncel
